@@ -115,7 +115,6 @@ static int handle_jpg(char *list)
         return -1;
     }
     strcpy(filepath, "/tmp/");
-
     for(i = 0; i < count; i++)
     {
         sprintf(filedir, "%s%s", filepath, fileList.filename[i]);
@@ -129,7 +128,7 @@ static int handle_jpg(char *list)
             if( resUpload == 0)
             {
                 char url[100];
-                sprintf(url, "http://192.168.1.102/list?token=%s", fileList.token[i]);
+                sprintf(url, "http://192.168.1.101/list?token=%s", fileList.token[i]);
                 long code = 0;
                 int errNum = 0;
                 while(code != 200 && errNum < 3)
@@ -153,14 +152,28 @@ static int handle_jpg(char *list)
     cJSON_Delete(json);
     return 0;
 }
+long handle_heart(char *data)
+{
+    if(strstr(data, "200"))
+        return 200;
+    else if(strstr(data, "201"))
+        return 201;
+    else
+        return 0;
+}
 void* comm_dev_thread(void *arg)
 {
-    long statusCode;
+    long statusCode = 0;
+    char status[MAX_STAT_SIZE];
     while(1)
     {
         printf("%s\n", (char*)arg);
         
-        statusCode = http_get_heart("http://192.168.1.102/heartbeat");
+        statusCode = http_get_heart(status, "http://192.168.1.101/heartbeat");
+        if(statusCode == 200)
+        {
+            statusCode = handle_heart(status);
+        }
         if(statusCode == 200 || statusCode == 201)
         {
             timeoutCounter = 0;
@@ -173,7 +186,8 @@ void* comm_dev_thread(void *arg)
                     printf("LIST malloc failed\n");
                     continue;
                 }
-                if(http_get_list(glist, "http://192.168.1.102/list") == 200)
+                memset(glist, 0, MAX_LIST_SIZE);
+                if(http_get_list(glist, "http://192.168.1.101/list") == 200)
                 {
                     printf("--------------\n%s\n--------------\n%ld\n", glist, strlen(glist));
                     handle_jpg(glist);

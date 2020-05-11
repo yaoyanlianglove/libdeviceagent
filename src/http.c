@@ -15,7 +15,15 @@ static int write_data_to_buff(void *ptr, int size, int nmemb, void *stream)
     if(size*nmemb >= MAX_LIST_SIZE)
         return -1;
     else
-        memcpy((char *)stream, ptr, size*nmemb);
+        strncat((char *)stream, ptr, size*nmemb);
+    return size*nmemb;
+}
+static int write_stat_to_buff(void *ptr, int size, int nmemb, void *stream)
+{
+    if(size*nmemb >= MAX_STAT_SIZE)
+        return -1;
+    else
+        strncat((char *)stream, ptr, size*nmemb);
     return size*nmemb;
 }
 int http_init(void)
@@ -105,41 +113,50 @@ double http_down_file(const char *fileName, const char *url)
     return 0;
 }
 
-long http_get_heart(const char *url)
+long http_get_heart(char *stat, const char *url)
 {
     CURL *curl_handle;
     CURLcode res;
-    
+    /* init the curl session */
     curl_handle = curl_easy_init();
-    if(curl_handle) 
+    if(curl_handle)
     {
+        /* set URL to get here */
         curl_easy_setopt(curl_handle, CURLOPT_URL, url);
+        /* Switch on full protocol/debug output while testing */
+        curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
+        /* disable progress meter, set to 0L to enable it */
+        curl_easy_setopt(curl_handle, CURLOPT_NOPROGRESS, 1L);
         curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
+        /* send all data to this function  */
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_stat_to_buff);
+        /* open the file */
+        /* write the page body to this file handle */
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, stat);
+        /* get it! */
         res = curl_easy_perform(curl_handle);
-        
+        /* Check for errors */
+        if(res != CURLE_OK)
+        {
+            fprintf(stderr, "http_get_heart() failed: %s\n", curl_easy_strerror(res));
+            curl_easy_cleanup(curl_handle);
+            return -1;
+        }
+        long code;
+        res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &code);
         if(CURLE_OK == res)
         {
-            long code;
-            /* ask for the content-type */
-            res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &code);
-            if(CURLE_OK == res)
-            {
-                printf("We received staus-code: %ld\n", code);
-                curl_easy_cleanup(curl_handle);
-                return code;
-            }
-            else
-            {
-                printf("curl_easy_getinfo failed\n");
-            }
+            printf("We received staus-code: %ld\n", code);
+            curl_easy_cleanup(curl_handle);
+            return code;
         }
         else
         {
-            printf("http_get_heart failed\n");
+            printf("curl_easy_getinfo failed\n");
         }
-        /* always cleanup */
-        curl_easy_cleanup(curl_handle);
     }
+    /* cleanup curl stuff */
+    curl_easy_cleanup(curl_handle);
     return 0;
 }
 long http_get_list(char *list, const char *url)
@@ -155,7 +172,7 @@ long http_get_list(char *list, const char *url)
         /* Switch on full protocol/debug output while testing */
         curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
         /* disable progress meter, set to 0L to enable it */
-        curl_easy_setopt(curl_handle, CURLOPT_NOPROGRESS, 1L);
+        curl_easy_setopt(curl_handle, CURLOPT_NOPROGRESS, 0L);
         curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
         /* send all data to this function  */
         curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_data_to_buff);

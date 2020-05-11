@@ -3,8 +3,8 @@
 
 
 #define    MAX_PIC_NUM    100
-#define    FILENAME_LEN   64
-#define    URL_LEN        96
+#define    FILENAME_LEN   128
+#define    URL_LEN        256
 #define    TOKEN_LEN      16
 typedef struct
 {
