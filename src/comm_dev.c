@@ -94,7 +94,7 @@ static int upload_jpg(char *filedir, int size)
         return -2;
     snapPic(userId, dataType, filedir, size, resUpJpg);
     printf("%s\n", resUpJpg);
-    if(!strstr(resUpJpg, "0"))
+    if(!strstr(resUpJpg, "o"))
         return -1;
     return 0;
 }
