@@ -23,7 +23,7 @@ static int write_stat_to_buff(void *ptr, int size, int nmemb, void *stream)
     if(size*nmemb >= MAX_STAT_SIZE)
         return -1;
     else
-        strncat((char *)stream, ptr, size*nmemb);
+        memcpy((char *)stream, ptr, size*nmemb);
     return size*nmemb;
 }
 int http_init(void)

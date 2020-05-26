@@ -54,24 +54,34 @@ static int split_list(fileListDef *fileList, cJSON *json, int listLen)
             printf("itemFilename  is null\n");
             break;
         }
-        else    
-            memcpy(fileList->filename[res], itemFilename->valuestring, strlen(itemFilename->valuestring)); 
+        else  
+        {
+            memset(fileList->filename[res], 0, FILENAME_LEN);
+            memcpy(fileList->filename[res], itemFilename->valuestring, strlen(itemFilename->valuestring));
+        }  
+             
         itemUrl = cJSON_GetObjectItem(arrayItem, "url");
         if(itemUrl == NULL)
         {
             printf("itemUrl  is null\n");
             break;
         }
-        else    
+        else  
+        {
+            memset(fileList->url[res], 0, URL_LEN);  
             memcpy(fileList->url[res], itemUrl->valuestring, strlen(itemUrl->valuestring));
+        }   
         itemToken = cJSON_GetObjectItem(arrayItem, "token");
         if(itemToken == NULL)
         {
             printf("itemToken  is null\n");
             break;
         }
-        else    
+        else 
+        {
+            memset(fileList->token[res], 0, TOKEN_LEN);  
             memcpy(fileList->token[res], itemToken->valuestring, strlen(itemToken->valuestring)); 
+        } 
         res++;
     }
     return res;
@@ -84,7 +94,7 @@ static int upload_jpg(char *filedir, int size)
         return -2;
     snapPic(userId, dataType, filedir, size, resUpJpg);
     printf("%s\n", resUpJpg);
-    if(!strstr(resUpJpg, "111"))
+    if(!strstr(resUpJpg, "0"))
         return -1;
     return 0;
 }
@@ -107,6 +117,8 @@ static int handle_jpg(char *list)
     int i = 0;
     char filepath[100];
     char filedir[200];
+    memset(filepath, 0, 100);
+    memset(filedir, 0, 100);
     count = split_list(&fileList, json, listLen);
     if(count <= 0)
     {
@@ -128,6 +140,7 @@ static int handle_jpg(char *list)
             if( resUpload == 0)
             {
                 char url[100];
+                memset(url, 0 , 100);
                 sprintf(url, "http://192.168.1.101/list?token=%s", fileList.token[i]);
                 long code = 0;
                 int errNum = 0;
@@ -143,6 +156,10 @@ static int handle_jpg(char *list)
             {
                 printf("upload_jpg failed\n");
             } 
+            else if(resUpload == -2)
+            {
+                printf("SnapPicCallBack unregister\n");
+            }
         }
         else
         {
@@ -165,13 +182,14 @@ void* comm_dev_thread(void *arg)
 {
     long statusCode = 0;
     char status[MAX_STAT_SIZE];
+    memset(status, 0, MAX_STAT_SIZE);
     while(1)
     {
         printf("%s\n", (char*)arg);
-        
         statusCode = http_get_heart(status, "http://192.168.1.101/heartbeat");
         if(statusCode == 200)
         {
+            printf("status is %s\n", status);
             statusCode = handle_heart(status);
         }
         if(statusCode == 200 || statusCode == 201)
